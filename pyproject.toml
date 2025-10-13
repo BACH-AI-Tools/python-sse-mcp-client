@@ -1,0 +1,27 @@
+[project]
+name = "python-mcp-client-example"
+version = "0.1.0"
+description = "Python MCP 客户端调用示例 - 通过 SSE 连接远程 MCP 服务器"
+authors = [
+    { name = "Feng Rongquan", email = "kirifeng@example.com" }
+]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.9.0",
+]
+keywords = ["mcp", "sse", "model-context-protocol", "openai", "claude", "ai"]
+
+[project.urls]
+Homepage = "https://github.com/BACH-AI-Tools/python-sse-mcp-client"
+Repository = "https://github.com/BACH-AI-Tools/python-sse-mcp-client"
+Issues = "https://github.com/BACH-AI-Tools/python-sse-mcp-client/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
