@@ -1,5 +1,7 @@
 # SSE MCP 客户端使用指南
 
+[![GitHub](https://img.shields.io/badge/GitHub-BACH--AI--Tools-blue?logo=github)](https://github.com/BACH-AI-Tools/python-sse-mcp-client)
+
 ## 🎯 什么是 SSE MCP？
 
 通过 HTTP/SSE 协议连接**远程** MCP 服务器（而不是本地进程）。
@@ -253,6 +255,8 @@ python src/openfda_demo.py
 
 ## 🔗 相关链接
 
+- [本项目 GitHub 仓库](https://github.com/BACH-AI-Tools/python-sse-mcp-client)
 - [MCP 官方文档](https://modelcontextprotocol.io/)
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 - [OpenFDA API](https://open.fda.gov/)
+- [BACH AI Tools 组织](https://github.com/BACH-AI-Tools)
