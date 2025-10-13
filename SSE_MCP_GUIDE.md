@@ -258,5 +258,4 @@ python src/openfda_demo.py
 - [本项目 GitHub 仓库](https://github.com/BACH-AI-Tools/python-sse-mcp-client)
 - [MCP 官方文档](https://modelcontextprotocol.io/)
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
-- [OpenFDA API](https://open.fda.gov/)
 - [BACH AI Tools 组织](https://github.com/BACH-AI-Tools)
