@@ -1,14 +1,15 @@
-# Python SSE MCP 客户端示例
+# Python MCP 客户端示例
 
 [![GitHub](https://img.shields.io/badge/GitHub-BACH--AI--Tools-blue?logo=github)](https://github.com/BACH-AI-Tools/python-sse-mcp-client)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-在 Python 代码中连接 **SSE（Server-Sent Events）类型**的远程 MCP 服务器。
+在 Python 代码中连接远程 MCP 服务器，支持 **SSE** 和 **StreamableHTTP** 两种协议。
 
 ## ⭐ 特点
 
-✅ **远程连接**：通过 HTTP/SSE 连接云端 MCP 服务器  
+✅ **双协议支持**：支持 SSE 和 StreamableHTTP 两种 MCP 传输协议  
+✅ **远程连接**：通过 HTTP 连接云端 MCP 服务器  
 ✅ **开箱即用**：完整示例代码，可直接运行  
 ✅ **实用演示**：包含 OpenFDA 药品数据库查询示例  
 ✅ **详细文档**：完整的使用指南和 API 说明
@@ -18,12 +19,14 @@
 ```
 .
 ├── src/
-│   ├── sse_client_example.py  # SSE MCP 基础连接示例
-│   └── openfda_demo.py        # OpenFDA 实用查询示例
-├── SSE_MCP_GUIDE.md           # 详细使用指南
-├── README.md                  # 本文件
-├── requirements.txt           # 依赖列表
-└── pyproject.toml            # 项目配置
+│   ├── sse_client_example.py      # SSE MCP 基础连接示例
+│   ├── streamable_http_demo.py    # StreamableHTTP MCP 连接示例
+│   └── openfda_demo.py            # OpenFDA 实用查询示例
+├── SSE_MCP_GUIDE.md               # SSE 协议使用指南
+├── STREAMABLE_HTTP_GUIDE.md       # StreamableHTTP 协议使用指南
+├── README.md                      # 本文件
+├── requirements.txt               # 依赖列表
+└── pyproject.toml                # 项目配置
 ```
 
 ## 🚀 快速开始
@@ -37,8 +40,11 @@ pip install mcp
 ### 2. 运行示例
 
 ```bash
-# 测试基础连接（查看所有可用工具）
+# 测试基础 SSE 连接（查看所有可用工具）
 python src/sse_client_example.py
+
+# 测试 StreamableHTTP 连接（FDA MCP 服务器）
+python src/streamable_http_demo.py
 
 # 运行实用查询示例（药品信息查询）
 python src/openfda_demo.py
@@ -46,7 +52,7 @@ python src/openfda_demo.py
 
 ## 💡 核心代码
 
-### 连接 SSE MCP 服务器
+### 连接 SSE 服务器
 
 ```python
 from mcp import ClientSession
@@ -73,6 +79,39 @@ async with sse_client(url=server_url, headers=headers) as (read, write):
         })
 
         print(result.content[0].text)
+```
+
+### 连接 StreamableHTTP 服务器
+
+```python
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
+
+# 服务器配置
+server_url = "http://fda.sitmcp.kaleido.guru/mcp"
+headers = {
+    "emcp-key": "YOUR_KEY",
+    "emcp-usercode": "YOUR_CODE"
+}
+
+# 连接并调用（支持会话管理）
+async with streamablehttp_client(
+    url=server_url,
+    headers=headers,
+    timeout=30.0,
+    sse_read_timeout=300.0
+) as (read, write, get_session_id):
+    async with ClientSession(read, write) as session:
+        await session.initialize()
+
+        # 获取会话 ID
+        session_id = get_session_id()
+        print(f"Session ID: {session_id}")
+
+        # 调用工具
+        result = await session.call_tool("tool_name", arguments={
+            "param": "value"
+        })
 ```
 
 ## 🌟 OpenFDA 示例
@@ -119,9 +158,13 @@ asyncio.run(query_drug("aspirin"))
 
 ## 📚 详细文档
 
-查看 [SSE_MCP_GUIDE.md](SSE_MCP_GUIDE.md) 了解：
+- **SSE 协议**：查看 [SSE_MCP_GUIDE.md](SSE_MCP_GUIDE.md)
+- **StreamableHTTP 协议**：查看 [STREAMABLE_HTTP_GUIDE.md](STREAMABLE_HTTP_GUIDE.md)
+
+文档包含：
 
 - 完整的 API 文档
+- 协议对比和选择建议
 - 所有工具的参数说明
 - 更多实用示例
 - 常见问题解答
@@ -137,6 +180,8 @@ asyncio.run(query_drug("aspirin"))
 
 如果要在 Cursor/Claude Desktop 中使用：
 
+### SSE 类型服务器
+
 ```json
 {
   "mcpServers": {
@@ -147,6 +192,23 @@ asyncio.run(query_drug("aspirin"))
         "emcp-usercode": "YOUR_CODE"
       },
       "type": "sse"
+    }
+  }
+}
+```
+
+### StreamableHTTP 类型服务器
+
+```json
+{
+  "mcpServers": {
+    "fda": {
+      "url": "http://fda.sitmcp.kaleido.guru/mcp",
+      "headers": {
+        "emcp-key": "YOUR_KEY",
+        "emcp-usercode": "YOUR_CODE"
+      },
+      "type": "streamableHttp"
     }
   }
 }
