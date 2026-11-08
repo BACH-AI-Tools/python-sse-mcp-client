@@ -1,7 +1,7 @@
 [project]
 name = "python-mcp-client-example"
 version = "0.1.0"
-description = "Python MCP 客户端调用示例 - 通过 SSE 连接远程 MCP 服务器"
+description = "Python MCP client examples for remote servers: Streamable HTTP and SSE (Python 远程 MCP 客户端示例)"
 authors = [
     { name = "Feng Rongquan", email = "kirifeng@example.com" }
 ]
@@ -9,9 +9,10 @@ license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "mcp>=1.9.0",
+    "httpx>=0.27.1",
+    "mcp>=1.24,<2",
 ]
-keywords = ["mcp", "sse", "model-context-protocol", "openai", "claude", "ai"]
+keywords = ["mcp", "sse", "streamable-http", "model-context-protocol", "mcp-client", "jieba"]
 
 [project.urls]
 Homepage = "https://github.com/BACH-AI-Tools/python-sse-mcp-client"
