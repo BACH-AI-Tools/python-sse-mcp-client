@@ -1,236 +1,184 @@
-# Python MCP 客户端示例
+# Python MCP client examples (Streamable HTTP + SSE)
 
-[![GitHub](https://img.shields.io/badge/GitHub-BACH--AI--Tools-blue?logo=github)](https://github.com/BACH-AI-Tools/python-sse-mcp-client)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-在 Python 代码中连接远程 MCP 服务器，支持 **SSE** 和 **StreamableHTTP** 两种协议。
+**English** | [简体中文](README.zh-CN.md)
 
-## ⭐ 特点
+Small, runnable Python programs that connect to a **remote** MCP server with the official [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk). They cover both HTTP transports:
+- **Streamable HTTP**, the current transport;
+- **HTTP+SSE**, the legacy transport that many servers still offer.
 
-✅ **双协议支持**：支持 SSE 和 StreamableHTTP 两种 MCP 传输协议  
-✅ **远程连接**：通过 HTTP 连接云端 MCP 服务器  
-✅ **开箱即用**：完整示例代码，可直接运行  
-✅ **实用演示**：包含 OpenFDA 药品数据库查询示例  
-✅ **详细文档**：完整的使用指南和 API 说明
+Each program initializes a session, lists the server's tools, resources and prompts, and calls a tool. The examples use [jieba-mcp](https://github.com/BACH-AI-Tools/jieba-mcp), a Chinese text-processing server you can start locally in one command, so everything below runs without any account or API key.
 
-## 📦 项目结构
+## Files
 
-```
-.
-├── src/
-│   ├── sse_client_example.py      # SSE MCP 基础连接示例
-│   ├── streamable_http_demo.py    # StreamableHTTP MCP 连接示例
-│   └── openfda_demo.py            # OpenFDA 实用查询示例
-├── SSE_MCP_GUIDE.md               # SSE 协议使用指南
-├── STREAMABLE_HTTP_GUIDE.md       # StreamableHTTP 协议使用指南
-├── README.md                      # 本文件
-├── requirements.txt               # 依赖列表
-└── pyproject.toml                # 项目配置
-```
+| File | What it shows |
+|---|---|
+| `src/streamable_http_demo.py` | Streamable HTTP: custom headers and timeouts via `httpx.AsyncClient`, session id, list everything, call a tool |
+| `src/sse_client_example.py` | The same over the legacy SSE transport |
+| `src/jieba_demo.py` | A practical client calling five jieba tools; `--transport streamable-http\|sse` |
+| `src/common.py` | Shared CLI options (`--url`, `--header`, `--timeout`) and printing |
+| `scripts/smoke.py` | Starts jieba-mcp, runs every example over both transports, checks the output |
 
-## 🚀 快速开始
+## Quick start
 
-### 1. 安装依赖
+**1. Start the demo server.** Run each transport in its own terminal:
 
 ```bash
-pip install mcp
+uvx jieba-mcp --transport streamable-http --port 8000   # http://127.0.0.1:8000/mcp
+uvx jieba-mcp --transport sse --port 8001               # http://127.0.0.1:8001/sse
 ```
 
-### 2. 运行示例
+- Until jieba-mcp is on PyPI, use `uvx --from git+https://github.com/BACH-AI-Tools/jieba-mcp jieba-mcp` in place of `uvx jieba-mcp`.
+- If port 8000 is taken, pick another port and pass a matching `--url` below.
+
+**2. Install the client dependencies** (Python 3.10+):
 
 ```bash
-# 测试基础 SSE 连接（查看所有可用工具）
-python src/sse_client_example.py
+pip install -r requirements.txt
+```
 
-# 测试 StreamableHTTP 连接（FDA MCP 服务器）
+**3. Run the examples:**
+
+```bash
 python src/streamable_http_demo.py
-
-# 运行实用查询示例（药品信息查询）
-python src/openfda_demo.py
+python src/sse_client_example.py --url http://127.0.0.1:8001/sse
+python src/jieba_demo.py
+python src/jieba_demo.py --transport sse --url http://127.0.0.1:8001/sse
 ```
 
-## 💡 核心代码
+Real output, trimmed. The session id differs on every run.
 
-### 连接 SSE 服务器
+```text
+$ python src/streamable_http_demo.py --header 'Authorization: Bearer demo-token'
+Connecting to http://127.0.0.1:8000/mcp (Streamable HTTP)
+Headers: {'Authorization': '***oken'}
+Session id: b4b27575b92042ba9e26b5ef2799f028
+Server: jieba 1.0.0
+Protocol version: 2025-11-25
+
+Tools (5):
+  - segment: Split Chinese text into words with jieba.
+      text (string, required)
+      mode (string, optional)
+      hmm (boolean, optional)
+  - extract_keywords: Extract the most important keywords from Chinese text.
+  ...
+Calling extract_keywords {"text": "我来到北京清华大学，清华大学是一所综合性大学", "top_k": 3}:
+{"method": "tfidf", "keywords": [{"word": "清华大学", "weight": 2.308741}, {"word": "一所", "weight": 1.115948}, {"word": "综合性", "weight": 1.044143}]}
+```
+
+```text
+$ python src/sse_client_example.py --url http://127.0.0.1:8001/sse
+Connecting to http://127.0.0.1:8001/sse (SSE)
+Server: jieba 1.0.0
+...
+Calling segment {"text": "我来到北京清华大学"}:
+{"mode": "precise", "tokens": ["我", "来到", "北京", "清华大学"], "count": 4}
+```
+
+```text
+$ python src/jieba_demo.py
+
+>>> segment
+{"mode": "search", "tokens": ["小明", "硕士", "毕业", "于", "中国", "科学", "学院", "科学院", "中国科学院", "计算", "计算所"], "count": 11}
+
+>>> extract_keywords
+{"method": "textrank", "keywords": [{"word": "线程", "weight": 1.0}, {"word": "进程", "weight": 0.7957}, {"word": "共享", "weight": 0.504354}]}
+
+>>> pos_tag
+{"tokens": [{"word": "我", "flag": "r"}, {"word": "爱", "flag": "v"}, {"word": "北京", "flag": "ns"}, {"word": "天安门", "flag": "ns"}], "count": 4}
+
+>>> add_user_words
+{"added": ["大语言模型"], "count": 1}
+
+>>> segment
+{"mode": "precise", "tokens": ["大语言模型", "正在", "改变", "软件开发"], "count": 4}
+
+>>> convert_chinese
+{"config": "s2twp", "text": "軟體和滑鼠"}
+```
+
+The SSE run of `jieba_demo.py` prints the same output.
+
+## Connect to your own server
+
+```bash
+python src/streamable_http_demo.py --url https://example.com/mcp \
+    --header 'Authorization: Bearer <your-token>'
+```
+
+You can also set `MCP_SERVER_URL` instead of passing `--url`. Header values are masked when printed. Keep real tokens in environment variables or a local, git-ignored `.env`, never in code.
+
+## The core code
+
+**Streamable HTTP** (`mcp>=1.24`):
+
+```python
+import httpx
+from mcp import ClientSession
+from mcp.client.streamable_http import streamable_http_client
+
+http = httpx.AsyncClient(headers={"Authorization": "Bearer <token>"},
+                         timeout=httpx.Timeout(30, read=300))
+async with http, streamable_http_client("http://127.0.0.1:8000/mcp", http_client=http) as (read, write, get_session_id), \
+        ClientSession(read, write) as session:
+    await session.initialize()
+    result = await session.call_tool("segment", {"text": "我来到北京清华大学"})
+    print(result.structuredContent)
+```
+
+**SSE:**
 
 ```python
 from mcp import ClientSession
 from mcp.client.sse import sse_client
 
-# 服务器配置
-server_url = "http://openfda.mcp.kaleido.guru/sse"
-headers = {
-    "emcp-key": "YOUR_KEY",
-    "emcp-usercode": "YOUR_CODE"
-}
-
-# 连接并调用
-async with sse_client(url=server_url, headers=headers) as (read, write):
-    async with ClientSession(read, write) as session:
-        await session.initialize()
-
-        # 列出可用工具
-        tools = await session.list_tools()
-
-        # 调用工具
-        result = await session.call_tool("tool_name", arguments={
-            "param": "value"
-        })
-
-        print(result.content[0].text)
+async with sse_client("http://127.0.0.1:8001/sse", headers={...}, timeout=30, sse_read_timeout=300) as (read, write), \
+        ClientSession(read, write) as session:
+    await session.initialize()
+    tools = await session.list_tools()
 ```
 
-### 连接 StreamableHTTP 服务器
+## Streamable HTTP or SSE?
 
-```python
-from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+| | Streamable HTTP | HTTP+SSE (legacy) |
+|---|---|---|
+| Endpoint | one URL, usually `/mcp` (POST, plus an optional GET stream) | `GET /sse` for the event stream + `POST /messages/?session_id=…` |
+| Status in the spec | current (since 2025-03-26) | deprecated, kept for compatibility |
+| Sessions | optional `Mcp-Session-Id` header; servers may be stateless | one session per open SSE connection |
+| Resuming a dropped stream | supported with `Last-Event-ID` | not supported |
+| Proxies / serverless | plain request/response works | needs a long-lived connection |
 
-# 服务器配置
-server_url = "http://fda.sitmcp.kaleido.guru/mcp"
-headers = {
-    "emcp-key": "YOUR_KEY",
-    "emcp-usercode": "YOUR_CODE"
-}
+Use Streamable HTTP when the server offers it, and SSE only for servers that have nothing else.
 
-# 连接并调用（支持会话管理）
-async with streamablehttp_client(
-    url=server_url,
-    headers=headers,
-    timeout=30.0,
-    sse_read_timeout=300.0
-) as (read, write, get_session_id):
-    async with ClientSession(read, write) as session:
-        await session.initialize()
+## Using a remote server from an MCP app
 
-        # 获取会话 ID
-        session_id = get_session_id()
-        print(f"Session ID: {session_id}")
-
-        # 调用工具
-        result = await session.call_tool("tool_name", arguments={
-            "param": "value"
-        })
-```
-
-## 🌟 OpenFDA 示例
-
-项目包含完整的 OpenFDA（美国 FDA 药品数据库）查询示例：
-
-### 可用工具
-
-1. **search_drug_labels** - 搜索 FDA 药品标签信息
-2. **get_drug_adverse_reactions** - 查询药品不良反应
-3. **get_drug_warnings** - 获取药品警告信息
-4. **ae_pipeline_rag** - RAG 药品安全分析
-5. **get_drug_indications** - 获取药品适应症
-
-### 示例代码
-
-```python
-import asyncio
-from mcp import ClientSession
-from mcp.client.sse import sse_client
-
-async def query_drug(drug_name: str):
-    server_url = "http://openfda.mcp.kaleido.guru/sse"
-    headers = {
-        "emcp-key": "DGBBWP0neHpDf8MH5l6QIVeRpmBOkZB1",
-        "emcp-usercode": "2DebiJQI"
-    }
-
-    async with sse_client(url=server_url, headers=headers) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-
-            # 搜索药品
-            result = await session.call_tool("search_drug_labels", {
-                "search": drug_name,
-                "limit": 5
-            })
-
-            print(result.content[0].text)
-
-# 运行
-asyncio.run(query_drug("aspirin"))
-```
-
-## 📚 详细文档
-
-- **SSE 协议**：查看 [SSE_MCP_GUIDE.md](SSE_MCP_GUIDE.md)
-- **StreamableHTTP 协议**：查看 [STREAMABLE_HTTP_GUIDE.md](STREAMABLE_HTTP_GUIDE.md)
-
-文档包含：
-
-- 完整的 API 文档
-- 协议对比和选择建议
-- 所有工具的参数说明
-- 更多实用示例
-- 常见问题解答
-
-## 🎯 使用场景
-
-- **云服务集成**：连接远程 MCP API 服务
-- **数据查询**：查询 OpenFDA、天气、股票等公共 API
-- **AI 助手增强**：为 Claude/Cursor 等提供外部工具
-- **企业应用**：连接企业内部 MCP 服务器
-
-## 📋 MCP 配置示例
-
-如果要在 Cursor/Claude Desktop 中使用：
-
-### SSE 类型服务器
+Many clients accept a URL directly. The exact keys vary by app. For example, Cursor's `mcp.json`:
 
 ```json
 {
   "mcpServers": {
-    "openfda": {
-      "url": "http://openfda.mcp.kaleido.guru/sse",
-      "headers": {
-        "emcp-key": "YOUR_KEY",
-        "emcp-usercode": "YOUR_CODE"
-      },
-      "type": "sse"
-    }
+    "jieba": { "url": "http://127.0.0.1:8000/mcp" }
   }
 }
 ```
 
-### StreamableHTTP 类型服务器
+## Troubleshooting
 
-```json
-{
-  "mcpServers": {
-    "fda": {
-      "url": "http://fda.sitmcp.kaleido.guru/mcp",
-      "headers": {
-        "emcp-key": "YOUR_KEY",
-        "emcp-usercode": "YOUR_CODE"
-      },
-      "type": "streamableHttp"
-    }
-  }
-}
+- **`405 Method Not Allowed` / `404`:** the URL and transport don't match. Streamable HTTP servers usually listen on `/mcp`, SSE servers on `/sse`.
+- **`Redirect to … not followed`:** the SDK only follows redirects that stay on the same origin and method. The URL probably points at something else, such as a login page served by another web app on the same port.
+- **Timeouts on long tool calls:** raise `--timeout` (request timeout) or the read timeout (`sse_read_timeout` / `httpx.Timeout(read=…)`).
+- **`ImportError: streamable_http_client`:** upgrade to `mcp>=1.24`. Older SDKs only have the deprecated `streamablehttp_client(url, headers=…)`.
+
+## Smoke test
+
+```bash
+python scripts/smoke.py                    # uses `uvx jieba-mcp`
+JIEBA_MCP_CMD=jieba-mcp python scripts/smoke.py   # if it is already installed
 ```
 
-## 🔗 相关资源
+## License
 
-- [本项目 GitHub 仓库](https://github.com/BACH-AI-Tools/python-sse-mcp-client)
-- [MCP 官方文档](https://modelcontextprotocol.io/)
-- [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
-- [BACH AI Tools 组织](https://github.com/BACH-AI-Tools)
-
-## 📄 许可证
-
-MIT License - 查看 [LICENSE](LICENSE) 文件了解详情
-
-## 🤝 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
-## 👤 作者
-
-**Feng Rongquan**
-
-- GitHub: [@BACH-AI-Tools](https://github.com/BACH-AI-Tools)
+MIT, see [LICENSE](LICENSE). Author: **Feng Rongquan**, [BACH-AI-Tools](https://github.com/BACH-AI-Tools).
